@@ -1,0 +1,11 @@
+LICENSE
+README.md
+pyproject.toml
+setup.py
+bacdive/__init__.py
+bacdive/client.py
+bacdive.egg-info/PKG-INFO
+bacdive.egg-info/SOURCES.txt
+bacdive.egg-info/dependency_links.txt
+bacdive.egg-info/requires.txt
+bacdive.egg-info/top_level.txt
