@@ -33,9 +33,9 @@ class BacdiveClient():
             token = self.keycloak_openid.token(user, password)
             self.access_token = token['access_token']
             self.refresh_token = token['refresh_token']
-            print("-- Authentification successful --")
+            print("-- Authentication successful --")
         except KeycloakAuthenticationError as e:
-            print("ERROR - Authentification failed:", e)
+            print("ERROR - Authentication failed:", e)
             exit()
 
     def do_api_call(self, url):
@@ -62,7 +62,7 @@ class BacdiveClient():
             return json.loads(resp.content)
 
     def do_request(self, url):
-        ''' Perform request with authentification '''
+        ''' Perform request with authentication '''
         headers = {
             "Accept": "application/json",
             "Authorization": "Bearer {token}".format(token=self.access_token)
@@ -197,7 +197,7 @@ class BacdiveClient():
 
 
 if __name__ == "__main__":
-    bacdive = BacdiveClient('name@mail.example', 'password')
+    bacdive = BacdiveClient('mail.address@server.example', 'password')
 
     # the prepare method fetches all BacDive-IDs matching your query
     # and returns the number of IDs found

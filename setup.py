@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="bacdive",
-    version="0.2",
+    version="0.3",
     description="BacDive-API - Programmatic Access to the BacDive Database",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -23,6 +23,7 @@ setuptools.setup(
     keywords="microbiology bacteria strains phenotypes",
     install_requires=[
         "python-keycloak",
-        "requests"
+        "requests>=2.25.1",
+        "urllib3>=1.26.5"
     ]
 )

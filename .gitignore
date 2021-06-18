@@ -1,0 +1,3 @@
+dist/*
+bacdive.egg-info/*
+.vscode/*
