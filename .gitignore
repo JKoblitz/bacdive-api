@@ -1,3 +1,4 @@
 dist/*
 bacdive.egg-info/*
 .vscode/*
+build/*

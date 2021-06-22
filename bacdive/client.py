@@ -50,14 +50,20 @@ class BacdiveClient():
             url = baseurl + url
         resp = self.do_request(url)
 
-        if (resp.status_code != 200):
-            # Access token might have expired (15 minutes life time).
-            # Get new tokens using refresh token and try again.
-            token = self.keycloak_openid.refresh_token(self.refresh_token)
-            self.access_token = token['access_token']
-            self.refresh_token = token['refresh_token']
+        if resp.status_code == 500 or resp.status_code == 400:
+            return json.loads(resp.content)
+        elif (resp.status_code == 401):
+            msg = json.loads(resp.content)
 
-            resp = self.do_request(url)
+            if msg['message'] == "Expired token":
+                # Access token might have expired (15 minutes life time).
+                # Get new tokens using refresh token and try again.
+                token = self.keycloak_openid.refresh_token(self.refresh_token)
+                self.access_token = token['access_token']
+                self.refresh_token = token['refresh_token']
+                return self.do_api_call(url)
+                
+            return msg
         else:
             return json.loads(resp.content)
 
@@ -186,7 +192,8 @@ class BacdiveClient():
             print("ERROR: Something went wrong. Please check your query and try again")
             exit()
         if not 'count' in self.result:
-            print("ERROR:", self.result)
+            print("ERROR:", self.result.get("title"))
+            print(self.result.get("message"))
             exit()
         if self.result['count'] == 0:
             print("Your search did not receive any results.")
@@ -197,15 +204,15 @@ class BacdiveClient():
 
 
 if __name__ == "__main__":
-    bacdive = BacdiveClient('mail.address@server.example', 'password')
+    client = BacdiveClient('mail.address@server.example', 'password')
 
     # the prepare method fetches all BacDive-IDs matching your query
     # and returns the number of IDs found
-    count = bacdive.search(taxonomy='Bacillus subtilis subtilis')
-    print(count, 'strains found.')
+    count = client.search(taxonomy='Bacillus subtilis subtilis')
+    print(count, 'entries found.')
 
-    # The retrieve method lets you iterate over all strains
+    # The retrieve method lets you iterate over all entries
     # and returns the full entry as dict
     # Entries can be further filtered using a list of keys (e.g. ['keywords'])
-    for strain in bacdive.retrieve():
-        print(strain)
+    for entry in client.retrieve():
+        print(entry)
