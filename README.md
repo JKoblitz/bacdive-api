@@ -53,7 +53,7 @@ client.search(**query)
 Results from the `retrieve` Method of both clients can be further filtered. The result contains a list of matched keyword dicts:
 
 ```python
-filter=['keywords', 'description']
+filter=['keywords', 'culture collection no.']
 result = client.retrieve(filter)
 print({k:v for x in result for k,v in x.items()})
 ```

@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="bacdive",
-    version="0.1",
+    version="0.6",
     description="BacDive-API - Programmatic Access to the BacDive Database",
     long_description=long_description,
     long_description_content_type="text/markdown",

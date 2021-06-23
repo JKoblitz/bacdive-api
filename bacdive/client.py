@@ -36,7 +36,6 @@ class BacdiveClient():
             print("-- Authentication successful --")
         except KeycloakAuthenticationError as e:
             print("ERROR - Authentication failed:", e)
-            exit()
 
     def do_api_call(self, url):
         ''' Initialize API call on given URL and returns result as json '''
@@ -62,7 +61,7 @@ class BacdiveClient():
                 self.access_token = token['access_token']
                 self.refresh_token = token['refresh_token']
                 return self.do_api_call(url)
-                
+
             return msg
         else:
             return json.loads(resp.content)
@@ -154,14 +153,14 @@ class BacdiveClient():
             print(
                 "ERROR: Exacly one parameter is required. Please choose one of the following:")
             print(", ".join(allowed))
-            exit()
+            return 0
         querytype, query = params[0]
         querytype = querytype.lower()
         if querytype not in allowed:
             print(
                 "ERROR: The given query type is not allowed. Please choose one of the following:")
             print(", ".join(allowed))
-            exit()
+            return 0
         if querytype == 'id':
             if type(query) == type(""):
                 query = query.split(';')
@@ -175,7 +174,7 @@ class BacdiveClient():
                 print(
                     "This query supports only genus, species epithet (optional), and subspecies (optional).")
                 print("They can be defined as list, tuple or string (space separated).")
-                exit()
+                return 0
             self.result = self.getIDsByTaxonomy(*query)
         elif querytype == 'sequence':
             self.result = self.getIDsByGenome(query)
@@ -190,14 +189,14 @@ class BacdiveClient():
 
         if not self.result:
             print("ERROR: Something went wrong. Please check your query and try again")
-            exit()
+            return 0
         if not 'count' in self.result:
             print("ERROR:", self.result.get("title"))
             print(self.result.get("message"))
-            exit()
+            return 0
         if self.result['count'] == 0:
             print("Your search did not receive any results.")
-            exit()
+            return 0
         return self.result['count']
 
 
