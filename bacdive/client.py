@@ -6,36 +6,52 @@ terms of use. See https://bacdive.dsmz.de/about for details.
 Please register at https://api.bacdive.dsmz.de/login.
 '''
 
-from keycloak.exceptions import KeycloakAuthenticationError
+from keycloak.exceptions import KeycloakAuthenticationError, KeycloakPostError, KeycloakConnectionError
 from keycloak import KeycloakOpenID
 import requests
 import json
+import time
 
 
 class BacdiveClient():
-    def __init__(self, user, password, public=True):
+    def __init__(self, user, password, public=True, max_retries=10, retry_delay=50):
         ''' Initialize client and authenticate on the server '''
         self.result = {}
         self.public = public
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay # in seconds
 
         client_id = "api.bacdive.public"
         if self.public:
             server_url = "https://sso.dsmz.de/auth/"
         else:
             server_url = "https://sso.dmz.dsmz.de/auth/"
-        try:
-            self.keycloak_openid = KeycloakOpenID(
-                server_url=server_url,
-                client_id=client_id,
-                realm_name="dsmz")
 
-            # Get tokens
-            token = self.keycloak_openid.token(user, password)
-            self.access_token = token['access_token']
-            self.refresh_token = token['refresh_token']
-            print("-- Authentication successful --")
-        except KeycloakAuthenticationError as e:
-            print("ERROR - Authentication failed:", e)
+        self.keycloak_openid = KeycloakOpenID(
+            server_url=server_url,
+            client_id=client_id,
+            realm_name="dsmz")
+
+        for _ in range(self.max_retries):
+            try:
+                # Get tokens
+                token = self.keycloak_openid.token(user, password)
+                self.access_token = token['access_token']
+                self.refresh_token = token['refresh_token']
+                print("-- Authentication successful --")
+            except KeycloakAuthenticationError as e:
+                print(f"ERROR - Keycloak Authentication failed: {e}\n Retrying in {self.retry_delay} seconds")
+                time.sleep(self.retry_delay)
+            except KeycloakConnectionError as e:
+                print(f"ERROR - Keycloak Connection failed: {e}\n Retrying in {self.retry_delay} seconds")
+                time.sleep(self.retry_delay)
+            except KeycloakPostError as e:
+                print(f"ERROR - Keycloak Connection failed: {e}\n Retrying in {self.retry_delay} seconds")
+                time.sleep(self.retry_delay)
+            else:
+                break # break loop if successful
+        else:
+            print(f"ERROR - Keycloak authentication failed after {self.max_retries} retries.")
 
     def do_api_call(self, url):
         ''' Initialize API call on given URL and returns result as json '''
