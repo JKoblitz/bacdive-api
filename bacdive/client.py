@@ -8,18 +8,34 @@ Please register at https://api.bacdive.dsmz.de/login.
 
 from keycloak.exceptions import KeycloakAuthenticationError, KeycloakPostError, KeycloakConnectionError
 from keycloak import KeycloakOpenID
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import requests
 import json
 import time
 
 
+class ReportRetry(Retry):
+    ''' Wrapper for retry strategy to report retries'''
+    def __init__(self, url=None, *args, **kwargs):
+        self.url = url
+        self.retry_count = 0
+        super().__init__(*args, **kwargs)
+
+    def increment(self, *args, **kwargs):
+        self.retry_count += 1
+        print(f"Retrying API request for {self.url}. Attempt number {self.retry_count}.")
+        return super().increment(*args, **kwargs)
+
+
 class BacdiveClient():
-    def __init__(self, user, password, public=True, max_retries=10, retry_delay=50):
+    def __init__(self, user, password, public=True, max_retries=10, retry_delay=50, request_timeout=300):
         ''' Initialize client and authenticate on the server '''
         self.result = {}
         self.public = public
         self.max_retries = max_retries
         self.retry_delay = retry_delay # in seconds
+        self.request_timeout = request_timeout # in seconds
 
         client_id = "api.bacdive.public"
         if self.public:
@@ -90,9 +106,20 @@ class BacdiveClient():
             "Authorization": "Bearer {token}".format(token=self.access_token)
         }
 
-        resp = requests.get(url, headers=headers)
-        return resp
+        # session with retry strategy
+        retry_strategy = ReportRetry(
+            url=url,
+            total=self.max_retries,
+            backoff_factor=1, # how much to increase delay between each try
+            status_forcelist=[429, 500, 502, 503, 504] # retry on
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        http = requests.Session()
+        http.mount("https://", adapter)
+        http.mount("http://", adapter)
 
+        resp = http.get(url, headers=headers, timeout=self.request_timeout) # timeout in seconds
+        return resp
 
     def filterResult(self, d, keys):
         ''' Helper function to filter nested dict by keys '''
