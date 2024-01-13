@@ -65,7 +65,8 @@ class BacdiveClient():
             url = baseurl + url
         resp = self.do_request(url)
 
-        if resp.status_code == 500 or resp.status_code == 400:
+        if resp.status_code == 500 or resp.status_code == 400 or resp.status_code == 503:
+            print(f"Error {resp.status_code}: {resp.content}")
             return json.loads(resp.content)
         elif (resp.status_code == 401):
             msg = json.loads(resp.content)
