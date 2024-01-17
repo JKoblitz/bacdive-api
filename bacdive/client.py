@@ -6,36 +6,68 @@ terms of use. See https://bacdive.dsmz.de/about for details.
 Please register at https://api.bacdive.dsmz.de/login.
 '''
 
-from keycloak.exceptions import KeycloakAuthenticationError
+from keycloak.exceptions import KeycloakAuthenticationError, KeycloakPostError, KeycloakConnectionError
 from keycloak import KeycloakOpenID
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import requests
 import json
+import time
+
+
+class ReportRetry(Retry):
+    ''' Wrapper for retry strategy to report retries'''
+    def __init__(self, url=None, *args, **kwargs):
+        self.url = url
+        self.retry_count = 0
+        super().__init__(*args, **kwargs)
+
+    def increment(self, *args, **kwargs):
+        self.retry_count += 1
+        print(f"Retrying API request for {self.url}. Attempt number {self.retry_count}.")
+        return super().increment(*args, **kwargs)
 
 
 class BacdiveClient():
-    def __init__(self, user, password, public=True):
+    def __init__(self, user, password, public=True, max_retries=10, retry_delay=50, request_timeout=300):
         ''' Initialize client and authenticate on the server '''
         self.result = {}
         self.public = public
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay # in seconds
+        self.request_timeout = request_timeout # in seconds
 
         client_id = "api.bacdive.public"
         if self.public:
             server_url = "https://sso.dsmz.de/auth/"
         else:
             server_url = "https://sso.dmz.dsmz.de/auth/"
-        try:
-            self.keycloak_openid = KeycloakOpenID(
-                server_url=server_url,
-                client_id=client_id,
-                realm_name="dsmz")
 
-            # Get tokens
-            token = self.keycloak_openid.token(user, password)
-            self.access_token = token['access_token']
-            self.refresh_token = token['refresh_token']
-            print("-- Authentication successful --")
-        except KeycloakAuthenticationError as e:
-            print("ERROR - Authentication failed:", e)
+        self.keycloak_openid = KeycloakOpenID(
+            server_url=server_url,
+            client_id=client_id,
+            realm_name="dsmz")
+
+        for _ in range(self.max_retries):
+            try:
+                # Get tokens
+                token = self.keycloak_openid.token(user, password)
+                self.access_token = token['access_token']
+                self.refresh_token = token['refresh_token']
+                print("-- Authentication successful --")
+            except KeycloakAuthenticationError as e:
+                print(f"ERROR - Keycloak Authentication failed: {e}\n Retrying in {self.retry_delay} seconds")
+                time.sleep(self.retry_delay)
+            except KeycloakConnectionError as e:
+                print(f"ERROR - Keycloak Connection failed: {e}\n Retrying in {self.retry_delay} seconds")
+                time.sleep(self.retry_delay)
+            except KeycloakPostError as e:
+                print(f"ERROR - Keycloak Connection failed: {e}\n Retrying in {self.retry_delay} seconds")
+                time.sleep(self.retry_delay)
+            else:
+                break # break loop if successful
+        else:
+            print(f"ERROR - Keycloak authentication failed after {self.max_retries} retries.")
 
     def do_api_call(self, url):
         ''' Initialize API call on given URL and returns result as json '''
@@ -49,7 +81,8 @@ class BacdiveClient():
             url = baseurl + url
         resp = self.do_request(url)
 
-        if resp.status_code == 500 or resp.status_code == 400:
+        if resp.status_code == 500 or resp.status_code == 400 or resp.status_code == 503:
+            print(f"Error {resp.status_code}: {resp.content}")
             return json.loads(resp.content)
         elif (resp.status_code == 401):
             msg = json.loads(resp.content)
@@ -73,9 +106,20 @@ class BacdiveClient():
             "Authorization": "Bearer {token}".format(token=self.access_token)
         }
 
-        resp = requests.get(url, headers=headers)
-        return resp
+        # session with retry strategy
+        retry_strategy = ReportRetry(
+            url=url,
+            total=self.max_retries,
+            backoff_factor=1, # how much to increase delay between each try
+            status_forcelist=[429, 500, 502, 503, 504] # retry on
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        http = requests.Session()
+        http.mount("https://", adapter)
+        http.mount("http://", adapter)
 
+        resp = http.get(url, headers=headers, timeout=self.request_timeout) # timeout in seconds
+        return resp
 
     def filterResult(self, d, keys):
         ''' Helper function to filter nested dict by keys '''
