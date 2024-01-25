@@ -80,7 +80,7 @@ class BacdiveClient():
 
     def setSearchType(self, search_type):
         if search_type:
-            allowed = ['exact ', 'contains', 'startswith', 'endswith']
+            allowed = ['exact', 'contains', 'startswith', 'endswith']
             if search_type not in allowed:
                 print("WARNING - Search Type is not allowed.")
                 self.search_type = "exact"

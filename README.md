@@ -12,7 +12,11 @@ import bacdive
 
 client = bacdive.BacdiveClient('name@mail.example', 'password')
 
-# the search method fetches all BacDive-IDs matching your query
+# [optional] You may define the search type as one of the following: 
+# 'exact' (default), 'contains', 'startswith', 'endswith'
+client.setSearchType('exact')
+
+# The search method fetches all BacDive-IDs matching your query
 # and returns the number of IDs found
 count = client.search(taxonomy='Bacillus subtilis subtilis')
 print(count, 'strains found.')
@@ -34,15 +38,35 @@ query = {"id": [24493, 12, 132485]}
 
 # Search by culture collection number
 query = {"culturecolno": "DSM 26640"}
+# New in v1.0: Search by culture collection number with multiple numbers:
+query = {"culturecolno": ["DSM 26640", "DSM 26646"]}
+query = {"culturecolno": "DSM 26640;DSM 26646"} # semicolon may be used as separator
+
+# Search by culture collection number with search type 'startswith':
+client.setSearchType('startswith')
+query = {"culturecolno": "DSM"}
 
 # Search by taxonomy (either as full name or as list):
 # With genus name, species epithet (optional), and subspecies (optional).
 query = {"taxonomy": "Bacillus subtilis subsp. subtilis"}
 query = {"taxonomy": ("Escherichia", "coli")}
 
-# Search by sequence accession numbers:
-query = {"16s": "AF000162"} # 16S sequence
-query = {"genome": "GCA_006094295"} # genome sequence
+# Search by 16S sequence accession numbers:
+query = {"16s": "AF000162"}
+# New in v1.0: Search by 16S sequence with multiple sequence accession numbers:
+query = {"16s": ["AB681963", "JN566021", "AY027686"]}
+# New in v1.0: Search by 16S sequence with search type 'startswith':
+client.setSearchType('startswith')
+query = {"16s": "AB"}
+
+# Search by genome sequence accession numbers:
+query = {"genome": "GCA_006094295"}
+# New in v1.0: Search by genome sequence with multiple sequence accession numbers:
+query = {"genome": ["GCA_003332855", "GCA_024623325", "GCA_017377855"]}
+# New in v1.0: Search by genome sequence with search type 'startswith':
+client.setSearchType('startswith')
+query = {"genome": "DSM"}
+
 
 # run query
 client.search(**query)
@@ -73,6 +97,10 @@ The printed result will look like this:
 ...
 ```
 
+## Hints for more advanced queries
+If you have more advanced queries that are currently not covered by the API, we recommend you to use the [Bac*Dive* Advanced Search](https://bacdive.dsmz.de/advsearch), which is very flexible and powerful. You can then download the resulting table as CSV (button at the top right), import the CSV into your Python script, and use the BacDive-IDs to download all relevant information via the API.
+
+
 ## New in v0.3
 
 We added AI-based predictions to the Bac*Dive* database. Predicted traits are excluded by default. To include them, you have to call the method `includePredictions()`:
@@ -87,3 +115,8 @@ You can exclude predictions again by calling:
 client.excludePredictions()
 ```
 
+## New in v1.0
+
+Thanks to [phenolophthaleinum](https://github.com/phenolophthaleinum) for improving the error handling and Joaquim Sardá for improving the BacDive-API and adding new search possibilities.
+
+Examples for search type definitions and array requests are included in the examples above.
