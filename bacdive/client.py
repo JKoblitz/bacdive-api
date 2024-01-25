@@ -17,6 +17,8 @@ class BacdiveClient():
         ''' Initialize client and authenticate on the server '''
         self.result = {}
         self.public = public
+        
+        self.predictions = False
 
         client_id = "api.bacdive.public"
         if self.public:
@@ -36,6 +38,12 @@ class BacdiveClient():
             print("-- Authentication successful --")
         except KeycloakAuthenticationError as e:
             print("ERROR - Authentication failed:", e)
+
+    def includePredictions(self):
+        self.predictions = True
+
+    def excludePredictions(self):
+        self.predictions = False
 
     def do_api_call(self, url):
         ''' Initialize API call on given URL and returns result as json '''
@@ -73,6 +81,11 @@ class BacdiveClient():
             "Authorization": "Bearer {token}".format(token=self.access_token)
         }
 
+        if self.predictions:
+            if "?" in url:
+                url += "&predictions=1"
+            else:
+                url += "?predictions=1"
         resp = requests.get(url, headers=headers)
         return resp
 
@@ -162,6 +175,8 @@ class BacdiveClient():
             print(", ".join(allowed))
             return 0
         if querytype == 'id':
+            if type(query) == type(1):
+                query = str(query)
             if type(query) == type(""):
                 query = query.split(';')
             self.result = {'count': len(query), 'next': None,

@@ -1,6 +1,6 @@
 # BacDive API
 
-Using the BacDive API requires registration. Registrations is free but the usage of BacDive data is only permitted when in compliance with the BacDive terms of use. See [About BacDive](https://bacdive.dsmz.de/about) for details.
+Using the BacDive API requires registration. Registration is free but the usage of BacDive data is only permitted when in compliance with the BacDive terms of use. See [About BacDive](https://bacdive.dsmz.de/about) for details.
 
 Please register [here](https://api.bacdive.dsmz.de/login).
 
@@ -12,7 +12,7 @@ import bacdive
 
 client = bacdive.BacdiveClient('name@mail.example', 'password')
 
-# the prepare method fetches all BacDive-IDs matching your query
+# the search method fetches all BacDive-IDs matching your query
 # and returns the number of IDs found
 count = client.search(taxonomy='Bacillus subtilis subtilis')
 print(count, 'strains found.')
@@ -35,8 +35,8 @@ query = {"id": [24493, 12, 132485]}
 # Search by culture collection number
 query = {"culturecolno": "DSM 26640"}
 
-# Search by taxonomy (either as sull name or as list):
-# With genus, species epithet (optional), and subspecies (optional).
+# Search by taxonomy (either as full name or as list):
+# With genus name, species epithet (optional), and subspecies (optional).
 query = {"taxonomy": "Bacillus subtilis subsp. subtilis"}
 query = {"taxonomy": ("Escherichia", "coli")}
 
@@ -71,5 +71,19 @@ The printed result will look like this:
  '1164': [{'keywords': 'Bacteria'},
           {'culture collection no.': 'DSM 4750, 1E7, BGSC 1E7, pE194-cop6'}],
 ...
+```
+
+## New in v0.3
+
+We added AI-based predictions to the Bac*Dive* database. Predicted traits are excluded by default. To include them, you have to call the method `includePredictions()`:
+
+```python
+client.includePredictions()
+```
+
+You can exclude predictions again by calling: 
+
+```python
+client.excludePredictions()
 ```
 
