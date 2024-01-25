@@ -38,6 +38,7 @@ class BacdiveClient():
         self.request_timeout = request_timeout # in seconds
         
         self.predictions = False
+        self.search_type = False
 
         client_id = "api.bacdive.public"
         if self.public:
@@ -76,6 +77,17 @@ class BacdiveClient():
 
     def excludePredictions(self):
         self.predictions = False
+
+    def setSearchType(self, search_type):
+        if search_type:
+            allowed = ['exact ', 'contains', 'startswith', 'endswith']
+            if search_type not in allowed:
+                print("WARNING - Search Type is not allowed.")
+                self.search_type = "exact"
+            else:
+                self.search_type = search_type
+        else:
+            self.search_type = False
 
     def do_api_call(self, url):
         ''' Initialize API call on given URL and returns result as json '''
@@ -236,14 +248,18 @@ class BacdiveClient():
                 return 0
             self.result = self.getIDsByTaxonomy(*query)
         elif querytype == 'sequence':
+            query = self.parseSearchTypeQuery(query)
             self.result = self.getIDsByGenome(query)
             if self.result['count'] == 0:
                 self.result = self.getIDsBy16S(query)
         elif querytype == 'genome':
+            query = self.parseSearchTypeQuery(query)
             self.result = self.getIDsByGenome(query)
         elif querytype == '16s':
+            query = self.parseSearchTypeQuery(query)
             self.result = self.getIDsBy16S(query)
         elif querytype == 'culturecolno':
+            query = self.parseSearchTypeQuery(query)
             self.result = self.getIDByCultureno(query)
 
         if not self.result:
@@ -258,6 +274,21 @@ class BacdiveClient():
             return 0
         return self.result['count']
 
+    def parseSearchTypeQuery(self, query):
+        if type(query) == type(1):
+            query = str(query)
+        if type(query) == type(""):
+            query = query.split(';')
+
+        item = ";".join([ str(i).strip() for i in query ])
+
+        if self.search_type:
+            if "?" in item:
+                item += "&search_type=" + self.search_type
+            else:
+                item += "?search_type=" + self.search_type
+
+        return item
 
 
 
