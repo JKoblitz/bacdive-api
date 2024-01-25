@@ -77,12 +77,6 @@ class BacdiveClient():
     def excludePredictions(self):
         self.predictions = False
 
-    def includePredictions(self):
-        self.predictions = True
-
-    def excludePredictions(self):
-        self.predictions = False
-
     def do_api_call(self, url):
         ''' Initialize API call on given URL and returns result as json '''
         if self.public:
