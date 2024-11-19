@@ -163,7 +163,7 @@ class BacdiveClient():
     def retrieve(self, filter=None):
         ''' Yields all the received entries and does next call if result is incomplete '''
         ids = ";".join([str(i) for i in self.result['results']])
-        entries = self.do_api_call('fetch/'+ids)['results']
+        entries = self.do_api_call('fetch/'+ids)['results'] if ids else []
         for el in entries:
             if isinstance(el, dict):
                 entry = el
