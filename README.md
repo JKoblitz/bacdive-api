@@ -1,16 +1,11 @@
-# BacDive API
+# BacDive API v2
 
-Using the BacDive API requires registration. Registration is free but the usage of BacDive data is only permitted when in compliance with the BacDive terms of use. See [About BacDive](https://bacdive.dsmz.de/about) for details.
-
-Please register [here](https://api.bacdive.dsmz.de/login).
-
-The Python package can be initialized using your login credentials:
-
+Using the BacDive API does not require registration anymore, but the usage of BacDive data is only permitted when in compliance with the BacDive terms of use. See [About BacDive](https://bacdive.dsmz.de/about) for details.
 
 ```python
 import bacdive
 
-client = bacdive.BacdiveClient('name@mail.example', 'password')
+client = bacdive.BacdiveClient()
 
 # [optional] You may define the search type as one of the following: 
 # 'exact' (default), 'contains', 'startswith', 'endswith'

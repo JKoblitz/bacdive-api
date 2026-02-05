@@ -1,13 +1,8 @@
 '''
-Using the BacDive API requires registration. Registrations is free but the 
-usage of BacDive data is only permitted when in compliance with the BacDive 
-terms of use. See https://bacdive.dsmz.de/about for details.
-
-Please register at https://api.bacdive.dsmz.de/login.
+This package is for using the BacDive API V2 (2026-02).
+Registration is not required anymore.
 '''
 
-from keycloak.exceptions import KeycloakAuthenticationError, KeycloakPostError, KeycloakConnectionError
-from keycloak import KeycloakOpenID
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import requests
@@ -29,7 +24,7 @@ class ReportRetry(Retry):
 
 
 class BacdiveClient():
-    def __init__(self, user, password, public=True, max_retries=10, retry_delay=50, request_timeout=300):
+    def __init__(self, user=None, password=None, public=True, max_retries=10, retry_delay=50, request_timeout=300):
         ''' Initialize client and authenticate on the server '''
         self.result = {}
         self.public = public
@@ -45,32 +40,6 @@ class BacdiveClient():
             server_url = "https://sso.dsmz.de/auth/"
         else:
             server_url = "https://sso.dmz.dsmz.de/auth/"
-
-        self.keycloak_openid = KeycloakOpenID(
-            server_url=server_url,
-            client_id=client_id,
-            realm_name="dsmz")
-
-        for _ in range(self.max_retries):
-            try:
-                # Get tokens
-                token = self.keycloak_openid.token(user, password)
-                self.access_token = token['access_token']
-                self.refresh_token = token['refresh_token']
-                print("-- Authentication successful --")
-            except KeycloakAuthenticationError as e:
-                print(f"ERROR - Keycloak Authentication failed: {e}\n Retrying in {self.retry_delay} seconds")
-                time.sleep(self.retry_delay)
-            except KeycloakConnectionError as e:
-                print(f"ERROR - Keycloak Connection failed: {e}\n Retrying in {self.retry_delay} seconds")
-                time.sleep(self.retry_delay)
-            except KeycloakPostError as e:
-                print(f"ERROR - Keycloak Connection failed: {e}\n Retrying in {self.retry_delay} seconds")
-                time.sleep(self.retry_delay)
-            else:
-                break # break loop if successful
-        else:
-            print(f"ERROR - Keycloak authentication failed after {self.max_retries} retries.")
 
     def includePredictions(self):
         self.predictions = True
@@ -92,9 +61,9 @@ class BacdiveClient():
     def do_api_call(self, url):
         ''' Initialize API call on given URL and returns result as json '''
         if self.public:
-            baseurl = "https://api.bacdive.dsmz.de/"
+            baseurl = "https://api.bacdive.dsmz.de/v2/"
         else:
-            baseurl = "http://api.bacdive-dev.dsmz.local/"
+            baseurl = "http://api.bacdive-dev.dsmz.local/v2/"
         
         if not url.startswith("http"):
             # if base is missing add default:
@@ -107,23 +76,14 @@ class BacdiveClient():
         elif (resp.status_code == 401):
             msg = json.loads(resp.content)
 
-            if msg['message'] == "Expired token":
-                # Access token might have expired (15 minutes life time).
-                # Get new tokens using refresh token and try again.
-                token = self.keycloak_openid.refresh_token(self.refresh_token)
-                self.access_token = token['access_token']
-                self.refresh_token = token['refresh_token']
-                return self.do_api_call(url)
-
             return msg
         else:
             return json.loads(resp.content)
 
     def do_request(self, url):
-        ''' Perform request with authentication '''
+        ''' Perform request'''
         headers = {
             "Accept": "application/json",
-            "Authorization": "Bearer {token}".format(token=self.access_token)
         }
 
         if self.predictions:
